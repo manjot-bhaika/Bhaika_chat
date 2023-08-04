@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+body {
+  margin: 0 auto;
+  max-width: 800px;
+  padding: 0 20px;
+  background-color: #fafafa;
+}
+
+.container {
+  border: 1px solid #dbdbdb;
+  background: linear-gradient(to right, #f9f9f9, #ececec);
+  border-radius: 20px;
+  padding: 10px;
+  margin: 10px 0;
+  display: flex;
+  gap: 10px; /* Add this to create some spacing between messages */
+}
+
+
+.right-container {
+  justify-content: flex-end;
+  width: fit-content;
+  color: #fff;
+  margin-left: auto; /* Add this to push the container to the right */
+  background: #f09433; 
+  background: -moz-linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%); 
+  background: -webkit-linear-gradient(45deg, #f09433 0%,#e6683c 25%,#dc2743 50%,#cc2366 75%,#bc1888 100%); 
+  background: linear-gradient(45deg, #f09433 0%,#e6683c 25%,#dc2743 50%,#cc2366 75%,#bc1888 100%); 
+  filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#f09433', endColorstr='#bc1888',GradientType=1 ); /* Add your desired background color for sent messages */
+}
+
+.left-container {
+  justify-content: flex-start;
+  width: fit-content;
+  margin-right: auto; /* Add this to push the container to the left */
+  background-color: #ffffff; /* Add your desired background color for received messages */
+}
+
+
+.container::after {
+  content: "";
+  clear: both;
+  display: table;
+}
+
+.container img {
+  max-width: 40px;
+  width: 100%;
+  margin-right: 10px;
+  border-radius: 50%;
+}
+
+.time-right,
+.time-left {
+  display: none; /* Hide the timestamp for now */
+}
+
+h2 {
+  background-color: #3897f0;
+  padding: 10px;
+  text-align: center;
+  border-radius: 5px;
+  margin-bottom: 20px;
+  color: #fff;
+}
+
+input[type=text], select {
+  width: 100%;
+  padding: 12px 15px;
+  margin: 8px 0;
+  display: inline-block;
+  border: 1px solid #dbdbdb;
+  border-radius: 25px;
+  box-sizing: border-box;
+}
+
+input[type=submit] {
+  width: 100%;
+  background-color: #3897f0;
+  color: white;
+  padding: 14px 20px;
+  margin: 8px 0;
+  border: none;
+  border-radius: 25px;
+  cursor: pointer;
+}
+
+input[type=submit]:hover {
+  background-color: #1b70e3;
+}
+
+form {
+  margin-top: 20px;
+}
+
+/* Add some spacing for the container */
+#display {
+  margin-bottom: 50px;
+}
+
+</style>
+<script src="https://code.jquery.com/jquery-3.1.1.min.js" integrity="sha256-hVVnYaiADRTO2PzUGmuLJr8BLUSjGIZsDYGmIJLv2b8=" crossorigin="anonymous"></script>
+</head>
+<body>
+
+<h2>Room name - {{room}}</h2>
+<h2>{{username}}</h2>
+<div id="display"></div>
+
+<script>
+$(document).ready(function(){
+  setInterval(function(){
+    $.ajax({
+      type: 'GET',
+      url: "/getMessages/{{room}}/",
+      success: function(response){
+        console.log(response);
+        $("#display").empty();
+        var currentUser = "{{username}}"; // Current user's username (replace with actual value)
+        for (var key in response.messages) {
+          var username = response.messages[key].user;
+          var message = response.messages[key].value;
+
+          var containerClass = (username === currentUser) ? "right-container" : "left-container";
+          var temp = `
+            <div class="container ${containerClass}">
+             
+              <b>${username}</b>
+              <p>${message}</p>
+            </div>
+          `;
+          $("#display").append(temp);
+        }
+      },
+      error: function(response){
+        alert('An error occurred');
+      }
+    });
+  }, 1000);
+});
+</script>
+
+<div class="container">
+  <form id="post-form">
+    {% csrf_token %}
+    <input type="hidden" name="username" id="username" value="{{username}}"/>
+    <input type="hidden" name="room_id" id="room_id" value="{{room_details.id}}"/>
+    <input type="text" name="message" id="message" width="100px" placeholder="Type a message..." required/>
+    <input type="submit" value="Send" id="sendButton">    
+  </form>
+</div>
+
+</body>
+
+<script type="text/javascript">
+  $(document).on('submit','#post-form',function(e){
+    e.preventDefault();
+
+    $.ajax({
+      type:'POST',
+      url:'/send',
+      data:{
+        username: $('#username').val(),
+        room_id: $('#room_id').val(),
+        message: $('#message').val(),
+        csrfmiddlewaretoken: $('input[name=csrfmiddlewaretoken]').val(),
+      },
+      success: function(data){
+        // alert(data);
+      }
+    });
+    document.getElementById('message').value = '';
+  });
+  document.getElementById('message').addEventListener('input', function() {
+    var message = document.getElementById('message'); // Trim any leading/trailing spaces
+    var sendButton = document.getElementById('sendButton');
+    sendButton.disabled = message === ''; // Disable the button if the message is empty
+  });
+</script>
+
+</html>
